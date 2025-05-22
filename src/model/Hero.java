@@ -131,24 +131,32 @@ public class Hero extends GameObject {
         
         // --- 🚪 문 위에 도달한 경우 ---
         if (obj instanceof Door) {
-            if (hasKey) {
-                Door door = (Door) obj;
-                System.out.println("You used the key and entered the next room: " + door.getTargetRoomFilename());
-
-                // 현재 상태 저장하고 다음 방 로딩 요청
-                room.saveToCSV(); // 방 저장 메서드는 따로 구현 필요
-                Room nextRoom = Room.loadFromCSV(door.getTargetRoomFilename());
-
-                // 히어로 위치 초기화 (room1.csv처럼)
-                nextRoom.placeHero(this);  // 아래에 설명될 메서드
-                Game.setCurrentRoom(nextRoom); // Game 클래스에서 현재 방 갱신
-
+            Door door = (Door) obj;
+            String nextRoom = door.getTargetRoomFilename();
+        
+            // 열쇠 없이도 통과 가능한 방 목록 (필요 시 확장 가능)
+            boolean requiresKey = !(nextRoom.contains("room1") || nextRoom.contains("room2"));
+        
+            if (!requiresKey || hasKey) {
+                System.out.println(
+                    (requiresKey ? "You used the key" : "You entered") +
+                    " and moved to the next room: " + nextRoom
+                );
+        
+                // 현재 방 상태 저장
+                room.saveToCSV();
+        
+                // 다음 방 로딩 및 이동
+                Room nextRoomObj = Room.loadFromCSV(nextRoom);
+                nextRoomObj.placeHero(this);
+                Game.setCurrentRoom(nextRoomObj);
+        
                 return;
             } else {
                 System.out.println("The door is locked. You need a key.");
                 return;
             }
-        }
+        }        
     }
 
     public void attack(Room room) {

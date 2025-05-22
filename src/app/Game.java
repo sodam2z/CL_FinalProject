@@ -26,7 +26,7 @@ public class Game {
         while (running) {
             System.out.println("\nAdventureGame");
             hero.printStats();
-            currentRoom.displayRoom();
+            getCurrentRoom().displayRoom();
 
             System.out.print("Enter command (u/d/l/r to move, a to attack, q to quit): ");
             String input = scanner.nextLine();
@@ -36,7 +36,7 @@ public class Game {
                     hero.move(input.charAt(0), currentRoom);
                     break;
                 case "a":
-                    hero.attack(currentRoom);
+                    hero.attack(Game.getCurrentRoom());
                     break;
                 case "q":
                     System.out.println("Quitting the game.");

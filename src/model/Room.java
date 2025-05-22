@@ -30,7 +30,7 @@ public class Room {
                 String[] row = lines.get(r + 1);  // 두 번째 줄부터 방 내용
                 for (int c = 0; c < cols; c++) {
                     char ch = row[c].charAt(0);
-                    GameObject obj = GameObjectFactory.createFromSymbol(ch); // 아래 참고
+                    GameObject obj = GameObjectFactory.createFromSymbol(ch, filename);
                     room.grid[r][c] = new Cell(obj);
                 }
             }
@@ -70,13 +70,33 @@ public class Room {
     }
 
     public void placeHero(Hero hero) {
+        boolean placed = false;
+
+        // 1. 우선 CSV에서 @ 기호가 있었는지 찾아봄
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
                 GameObject obj = grid[r][c].getObject();
                 if (obj instanceof Hero) {
-                    grid[r][c].setObject(null); // 기존 히어로 제거
+                    // 이미 배치되어 있는 경우
+                    hero.setPosition(r, c);
+                    grid[r][c].setObject(hero); // 실제 Hero 인스턴스 덮어쓰기
+                    placed = true;
+                    return;
                 }
-                if (obj == null) {
+            }
+        }
+
+        // 2. @ 기호가 없고 (1,1)이 비어 있다면
+        if (!placed && rows > 1 && cols > 1 && grid[1][1].isEmpty()){
+            hero.setPosition(1, 1);
+            grid[1][1].setObject(hero);
+            return;
+        }
+
+        // 3. 그 외 빈 칸 아무 곳이나 랜덤 배치
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                if (grid[r][c].isEmpty()) {
                     hero.setPosition(r, c);
                     grid[r][c].setObject(hero);
                     return;
