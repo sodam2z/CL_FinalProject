@@ -173,59 +173,57 @@ public class Hero extends GameObject {
             System.out.println("You have no weapon to attack with!");
             return;
         }
-    
+
         Cell[][] grid = room.getGrid();
         int[][] directions = { {-1, 0}, {1, 0}, {0, -1}, {0, 1} }; // 상하좌우
-    
+
         boolean attacked = false;
-    
+
         for (int[] dir : directions) {
             int r = row + dir[0];
             int c = col + dir[1];
-    
+
             if (r >= 0 && r < room.getRows() && c >= 0 && c < room.getCols()) {
                 GameObject obj = grid[r][c].getObject();
-    
+
                 if (obj instanceof Monster) {
                     Monster monster = (Monster) obj;
-    
-                    // 전투 메뉴 출력
+
                     System.out.println("You are next to a " + monster.getName() + " (HP: " + monster.getHp() + ")");
                     System.out.print("Do you want to attack? (y/n): ");
                     Scanner scanner = new Scanner(System.in);
                     String input = scanner.nextLine();
-    
+
                     if (input.equalsIgnoreCase("y")) {
-                        // 공격 로직
                         monster.setHp(monster.getHp() - weapon.getDamage());
                         this.damage(monster.getDamage());
-    
+
                         System.out.println("You attacked with " + weapon.getName() + " (Damage: " + weapon.getDamage() + ")");
                         System.out.println("Monster retaliated! You took " + monster.getDamage() + " damage.");
                         System.out.println("Your HP: " + currentHp + "/" + maxHp);
                         System.out.println("Monster HP: " + monster.getHp());
-    
+
                         if (monster.isDead()) {
                             System.out.println("You defeated the " + monster.getName() + "!");
                             grid[r][c].setObject(null);
-    
-                            // Troll만 키를 드롭
+
                             if (monster.getName().equalsIgnoreCase("Troll")) {
                                 grid[r][c].setObject(new Key());
                                 System.out.println("The Troll dropped a key!");
                             }
+
+                            room.getMonsters().remove(monster); // ✅ ArrayList에서도 제거
                         }
-    
+
                         attacked = true;
-                        break; // 한 번에 한 마리만 공격
+                        break;
                     }
-                    scanner.close();
                 }
             }
         }
-    
+
         if (!attacked) {
             System.out.println("There is no monster next to you.");
         }
-    }    
+    }
 }

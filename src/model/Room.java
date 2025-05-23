@@ -8,6 +8,7 @@ public class Room {
     private int cols;
     private Cell[][] grid;
     private String filename;
+    private ArrayList<Monster> monsters = new ArrayList<>(); // ✅ ArrayList 추가
 
     // 생성자
     public Room(int rows, int cols) {
@@ -32,6 +33,9 @@ public class Room {
                     char ch = row[c].charAt(0);
                     GameObject obj = GameObjectFactory.createFromSymbol(ch, filename);
                     room.grid[r][c] = new Cell(obj);
+                    if (obj instanceof Monster m) {
+                        room.monsters.add(m); // ✅ 몬스터 수집
+                    }
                 }
             }
             return room;
@@ -107,11 +111,11 @@ public class Room {
 
     public void saveToCSV() {
         String[][] data = new String[rows + 1][cols];
-    
+
         // 첫 줄: 행과 열 정보
         data[0][0] = String.valueOf(rows);
         data[0][1] = String.valueOf(cols);
-    
+
         // 그리드 정보
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
@@ -119,10 +123,10 @@ public class Room {
                 data[r + 1][c] = (obj != null) ? String.valueOf(obj.getSymbol()) : " ";
             }
         }
-    
+
         // 파일로 저장
         util.CSVUtils.writeCSV(filename, data);
-    }    
+    }
 
     public Cell[][] getGrid() {
         return grid;
@@ -134,5 +138,10 @@ public class Room {
 
     public int getCols() {
         return cols;
+    }
+
+    // ✅ 몬스터 리스트를 반환하는 메서드
+    public List<Monster> getMonsters() {
+        return monsters;
     }
 }
