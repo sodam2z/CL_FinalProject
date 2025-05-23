@@ -73,6 +73,45 @@ public class Hero extends GameObject {
         Cell targetCell = grid[newRow][newCol];
         GameObject obj = targetCell.getObject();
 
+        // --- 🚪 문 위에 도달한 경우 ---
+        if (obj instanceof Door) {
+            Door door = (Door) obj;
+            String nextRoom = door.getTargetRoomFilename();
+
+            // room4의 문 → room1이면 → 게임 종료로 간주
+            if (nextRoom.contains("room1")) {
+                System.out.println("You escaped the maze! Congratulations!");
+                System.exit(0);
+            }
+        
+            // 열쇠 없이도 통과 가능한 방 목록 (필요 시 확장 가능)
+            boolean requiresKey = !(nextRoom.contains("room1") || nextRoom.contains("room2") || nextRoom.contains("room3"));
+        
+            if (!requiresKey || hasKey) {
+                System.out.println(
+                    (requiresKey ? "You used the key" : "You entered") +
+                    " and moved to the next room: " + nextRoom
+                );
+        
+                // 현재 방 상태 저장
+                room.saveToCSV();
+        
+                // 다음 방 로딩 및 이동
+                Room nextRoomObj = Room.loadFromCSV(nextRoom);
+                if (nextRoomObj == null) {
+                    System.out.println("[ERROR] Failed to load room: " + nextRoom);
+                    return;
+                }
+                
+                nextRoomObj.placeHero(this);
+                Game.setCurrentRoom(nextRoomObj);
+                return;
+            } else {
+                System.out.println("The door is locked. You need a key.");
+                return;
+            }
+        }
+
         // --- 💥 몬스터가 있다면 이동 불가 ---
         if (obj instanceof Monster) {
             System.out.println("A monster blocks your way!");
@@ -112,7 +151,6 @@ public class Hero extends GameObject {
                 } else {
                     System.out.println("You kept your current weapon.");
                 }
-                scanner.close();
             }
         }
 
@@ -127,36 +165,7 @@ public class Hero extends GameObject {
         grid[row][col].setObject(null); // 현재 자리 비우기
         row = newRow;
         col = newCol;
-        grid[row][col].setObject(this); // 새 자리로 이동
-        
-        // --- 🚪 문 위에 도달한 경우 ---
-        if (obj instanceof Door) {
-            Door door = (Door) obj;
-            String nextRoom = door.getTargetRoomFilename();
-        
-            // 열쇠 없이도 통과 가능한 방 목록 (필요 시 확장 가능)
-            boolean requiresKey = !(nextRoom.contains("room1") || nextRoom.contains("room2"));
-        
-            if (!requiresKey || hasKey) {
-                System.out.println(
-                    (requiresKey ? "You used the key" : "You entered") +
-                    " and moved to the next room: " + nextRoom
-                );
-        
-                // 현재 방 상태 저장
-                room.saveToCSV();
-        
-                // 다음 방 로딩 및 이동
-                Room nextRoomObj = Room.loadFromCSV(nextRoom);
-                nextRoomObj.placeHero(this);
-                Game.setCurrentRoom(nextRoomObj);
-        
-                return;
-            } else {
-                System.out.println("The door is locked. You need a key.");
-                return;
-            }
-        }        
+        grid[row][col].setObject(this); // 새 자리로 이동 
     }
 
     public void attack(Room room) {
