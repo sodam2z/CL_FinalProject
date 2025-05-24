@@ -8,11 +8,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.NoSuchElementException;
 import java.util.Scanner;
 
+/**
+ * Main class for launching the AdventureGame.
+ * Handles session creation, file copying, and game loop control.
+ */
 public class Game {
-    private static Room currentRoom;
-    private static Hero hero;
+    private static Room currentRoom;  // The currently active room
+    private static Hero hero;         // The player's hero
 
     public static void setCurrentRoom(Room room) {
         currentRoom = room;
@@ -23,13 +28,13 @@ public class Game {
     }
 
     public static void main(String[] args) {
-        // 1. 세션 폴더 생성
+        // 1. Create session directory (if it doesn't exist)
         File sessionDir = new File("sessions/session_001");
         if (!sessionDir.exists()) {
             sessionDir.mkdirs();
         }
 
-        // 2. 파일 복사
+        // 2. Copy original room files into the session directory
         String[] roomFiles = { "room1.csv", "room2.csv", "room3.csv", "room4.csv" };
         for (String file : roomFiles) {
             Path source = Paths.get("rooms", file);
@@ -41,28 +46,36 @@ public class Game {
             }
         }
 
-        // 3. 방 로딩 및 게임 시작
-        currentRoom = Room.loadFromCSV("rooms/room1.csv"); // 초기 방
+        // 3. Load the initial room and place the hero
+        currentRoom = Room.loadFromCSV("rooms/room1.csv");
         hero = new Hero();
         currentRoom.placeHero(hero);
 
         Scanner scanner = new Scanner(System.in);
         boolean running = true;
 
+        // Main game loop
         while (running) {
             System.out.println("\nAdventureGame");
-            hero.printStats();
-            getCurrentRoom().displayRoom();
+            hero.printStats();                // Display HP, weapon, and key status
+            getCurrentRoom().displayRoom();   // Render the current room
 
             System.out.print("Enter command (u/d/l/r to move, a to attack, q to quit): ");
-            String input = scanner.nextLine();
+            String input = "";
+            try {
+                input = scanner.nextLine().trim();
+            } catch (NoSuchElementException e) {
+                System.out.println("[ERROR] Input stream closed unexpectedly.");
+                return;
+            }
 
+            // Process player command
             switch (input) {
                 case "u": case "d": case "l": case "r":
-                    hero.move(input.charAt(0), currentRoom);
+                    hero.move(input.charAt(0), currentRoom);  // Move in specified direction
                     break;
                 case "a":
-                    hero.attack(Game.getCurrentRoom());
+                    hero.attack(Game.getCurrentRoom());        // Attack adjacent monster
                     break;
                 case "q":
                     System.out.println("Quitting the game.");
@@ -72,13 +85,13 @@ public class Game {
                     System.out.println("Invalid command.");
             }
 
-            // 종료 조건: 플레이어 사망
+            // Game ends if hero dies
             if (hero.getHp() <= 0) {
                 System.out.println("You died. Game Over.");
                 running = false;
             }
         }
 
-        scanner.close();
+        scanner.close(); // Clean up scanner
     }
 }

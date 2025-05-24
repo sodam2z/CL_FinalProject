@@ -1,23 +1,29 @@
 package model;
 
 import app.Game;
+import java.util.NoSuchElementException;
 import java.util.Scanner;
 
+/**
+ * Represents the player's controllable hero character.
+ * Handles movement, combat, inventory (weapon and key), and status.
+ */
 public class Hero extends GameObject {
     private int maxHp = 25;
     private int currentHp = 25;
     private Weapon weapon = null;
     private boolean hasKey = false;
 
-    private int row; // 현재 위치
-    private int col;
+    private int row; // current row position
+    private int col; // current column position
 
     public Hero() {
         this.row = 0;
         this.col = 0;
     }
 
-    // getter/setter
+    // === Basic Getters and Setters ===
+
     public int getHp() { return currentHp; }
     public int getMaxHp() { return maxHp; }
     public void setHp(int hp) { currentHp = Math.min(hp, maxHp); }
@@ -41,18 +47,24 @@ public class Hero extends GameObject {
         return '\u263A'; // ☺
     }
 
-    // 상태 출력
+    /**
+     * Prints the hero's current stats to the console.
+     */
     public void printStats() {
         System.out.println("HP: " + currentHp + "/" + maxHp +
                 " | Weapon: " + (weapon != null ? weapon.getName() : "None") +
                 " | Key: " + (hasKey ? "Yes" : "No"));
     }
 
-    // 이동 처리 (방 경계 확인 및 빈 공간 또는 아이템 있는 경우만 이동)
+    /**
+     * Handles movement logic for the hero.
+     * Interacts with items, doors, monsters, and performs bounds checking.
+     */
     public void move(char direction, Room room) {
         int newRow = row;
         int newCol = col;
 
+        // Determine direction
         switch (direction) {
             case 'u': newRow--; break;
             case 'd': newRow++; break;
@@ -63,7 +75,7 @@ public class Hero extends GameObject {
                 return;
         }
 
-        // 범위 검사
+        // Check bounds
         if (newRow < 0 || newRow >= room.getRows() || newCol < 0 || newCol >= room.getCols()) {
             System.out.println("You can't move there.");
             return;
@@ -73,37 +85,34 @@ public class Hero extends GameObject {
         Cell targetCell = grid[newRow][newCol];
         GameObject obj = targetCell.getObject();
 
-        // --- 🚪 문 위에 도달한 경우 ---
+        // === Door logic ===
         if (obj instanceof Door) {
             Door door = (Door) obj;
             String nextRoom = door.getTargetRoomFilename();
 
-            // room4의 문 → room1이면 → 게임 종료로 간주
+            // Game ends if final door leads to room1
             if (nextRoom.contains("room1")) {
                 System.out.println("You escaped the maze! Congratulations!");
                 System.exit(0);
             }
-        
-            // 열쇠 없이도 통과 가능한 방 목록 (필요 시 확장 가능)
+
+            // Determine if a key is required
             boolean requiresKey = !(nextRoom.contains("room1") || nextRoom.contains("room2") || nextRoom.contains("room3"));
-        
+
             if (!requiresKey || hasKey) {
                 System.out.println(
                     (requiresKey ? "You used the key" : "You entered") +
                     " and moved to the next room: " + nextRoom
                 );
-        
-                // 현재 방 상태 저장
-                room.saveToCSV();
-        
-                // 다음 방 로딩 및 이동
+
+                room.saveToCSV(); // Save current room state
                 Room nextRoomObj = Room.loadFromCSV(nextRoom);
                 if (nextRoomObj == null) {
                     System.out.println("[ERROR] Failed to load room: " + nextRoom);
                     return;
                 }
-                
-                nextRoomObj.placeHero(this);
+
+                nextRoomObj.placeHero(this); // Place hero in next room
                 Game.setCurrentRoom(nextRoomObj);
                 return;
             } else {
@@ -112,26 +121,26 @@ public class Hero extends GameObject {
             }
         }
 
-        // --- 💥 몬스터가 있다면 이동 불가 ---
+        // === Monster block check ===
         if (obj instanceof Monster) {
             System.out.println("A monster blocks your way!");
             return;
         }
 
-        // --- 🍖 포션 자동 사용 ---
+        // === Potion auto-healing ===
         if (obj instanceof Potion) {
             Potion potion = (Potion) obj;
             if (currentHp < maxHp) {
                 int healed = potion.getHealAmount();
                 currentHp = Math.min(maxHp, currentHp + healed);
                 System.out.println("You drank a " + potion.getName() + " and restored " + healed + " HP!");
-                targetCell.setObject(null);  // 포션 사용 후 사라짐
+                targetCell.setObject(null);  // Remove used potion
             } else {
                 System.out.println("You're already at full health.");
             }
         }
 
-        // --- 🗡 무기 습득 또는 교체 ---
+        // === Weapon pickup or swap ===
         if (obj instanceof Weapon) {
             Weapon newWeapon = (Weapon) obj;
             if (weapon == null) {
@@ -142,9 +151,16 @@ public class Hero extends GameObject {
                 System.out.println("Found a " + newWeapon.getName() + ". Current weapon: " + weapon.getName());
                 System.out.print("Do you want to switch? (y/n): ");
                 Scanner scanner = new Scanner(System.in);
-                String input = scanner.nextLine();
+                String input = "";
+                try {
+                    input = scanner.nextLine().trim();
+                } catch (NoSuchElementException e) {
+                    System.out.println("[ERROR] Unable to read your input.");
+                    return;
+                }
+
                 if (input.equalsIgnoreCase("y")) {
-                    // 교체: 이전 무기를 바닥에 둠
+                    // Drop current weapon and equip new one
                     targetCell.setObject(weapon);
                     weapon = newWeapon;
                     System.out.println("You switched weapons.");
@@ -154,78 +170,91 @@ public class Hero extends GameObject {
             }
         }
 
-        // --- 🔑 열쇠 획득 ---
+        // === Key pickup ===
         if (obj instanceof Key) {
             hasKey = true;
             System.out.println("You picked up a key!");
             targetCell.setObject(null);
         }
 
-        // --- 🚶 실제 이동 처리 ---
-        grid[row][col].setObject(null); // 현재 자리 비우기
+        // === Perform movement ===
+        grid[row][col].setObject(null); // Clear old position
         row = newRow;
         col = newCol;
-        grid[row][col].setObject(this); // 새 자리로 이동 
+        grid[row][col].setObject(this); // Move to new position
     }
 
+    /**
+     * Attacks a monster in an adjacent cell (up/down/left/right).
+     * Damage is exchanged between hero and monster.
+     * Handles monster death and Troll's key drop.
+     */
     public void attack(Room room) {
         if (weapon == null) {
             System.out.println("You have no weapon to attack with!");
             return;
         }
-    
+
         Cell[][] grid = room.getGrid();
-        int[][] directions = { {-1, 0}, {1, 0}, {0, -1}, {0, 1} }; // 상하좌우
-    
+        int[][] directions = { {-1, 0}, {1, 0}, {0, -1}, {0, 1} }; // Up, Down, Left, Right
+
         boolean attacked = false;
-    
+
         for (int[] dir : directions) {
             int r = row + dir[0];
             int c = col + dir[1];
-    
+
             if (r >= 0 && r < room.getRows() && c >= 0 && c < room.getCols()) {
                 GameObject obj = grid[r][c].getObject();
-    
+
                 if (obj instanceof Monster) {
                     Monster monster = (Monster) obj;
-    
-                    // 전투 메뉴 출력
+
+                    // Prompt user to attack
                     System.out.println("You are next to a " + monster.getName() + " (HP: " + monster.getHp() + ")");
                     System.out.print("Do you want to attack? (y/n): ");
                     Scanner scanner = new Scanner(System.in);
                     String input = scanner.nextLine();
-    
+
                     if (input.equalsIgnoreCase("y")) {
-                        // 공격 로직
+                        // Attack exchange
                         monster.setHp(monster.getHp() - weapon.getDamage());
                         this.damage(monster.getDamage());
-    
+
                         System.out.println("You attacked with " + weapon.getName() + " (Damage: " + weapon.getDamage() + ")");
                         System.out.println("Monster retaliated! You took " + monster.getDamage() + " damage.");
                         System.out.println("Your HP: " + currentHp + "/" + maxHp);
                         System.out.println("Monster HP: " + monster.getHp());
-    
+
+                        // If monster dies
                         if (monster.isDead()) {
                             System.out.println("You defeated the " + monster.getName() + "!");
                             grid[r][c].setObject(null);
-    
-                            // Troll만 키를 드롭
+                            room.getMonsters().remove(monster);
+
+                            if (room.getMonsters().isEmpty()) {
+                                System.out.println("🎉 You have cleared all monsters in this room!");
+                            }
+
+                            // Only Troll drops a key
                             if (monster.getName().equalsIgnoreCase("Troll")) {
                                 grid[r][c].setObject(new Key());
                                 System.out.println("The Troll dropped a key!");
+                                room.getItems().add(grid[r][c].getObject());
                             }
                         }
-    
+
                         attacked = true;
-                        break; // 한 번에 한 마리만 공격
+                        break; // Attack only one monster per action
                     }
+
                     scanner.close();
                 }
             }
         }
-    
+
         if (!attacked) {
             System.out.println("There is no monster next to you.");
         }
-    }    
+    }
 }
