@@ -8,8 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.NoSuchElementException;
-import java.util.Scanner;
+import java.util.*;
 
 /**
  * Main class for launching the AdventureGame.
@@ -18,23 +17,54 @@ import java.util.Scanner;
 public class Game {
     private static Room currentRoom;  // The currently active room
     private static Hero hero;         // The player's hero
+    private static Map<String, Room> roomCache = new HashMap<>(); // Cached rooms to preserve state
 
+
+    /**
+     * Sets the current room.
+     * @param room the Room object to set as current
+     */
     public static void setCurrentRoom(Room room) {
         currentRoom = room;
     }
 
+    /**
+     * Returns the current active room.
+     * @return the Room the hero is currently in
+     */
     public static Room getCurrentRoom() {
         return currentRoom;
     }
 
+    /**
+     * Retrieves a Room from cache or loads it from file if not yet loaded.
+     * This preserves room state (e.g., items, monsters) across visits.
+     *
+     * @param filename full path to the room CSV file
+     * @return the Room instance (from cache or loaded fresh)
+     */
+    public static Room getRoom(String filename) {
+        if (!roomCache.containsKey(filename)) {
+            Room loaded = Room.loadFromCSV(filename);
+            if (loaded != null) {
+                roomCache.put(filename, loaded);
+            }
+        }
+        return roomCache.get(filename);
+    }
+
+    /**
+     * Entry point of the AdventureGame.
+     * Initializes session files, loads first room, and starts the main game loop.
+     */
     public static void main(String[] args) {
-        // 1. Create session directory (if it doesn't exist)
-        File sessionDir = new File("sessions/session_001");
+        // Create session directory (if it doesn't exist)
+        File sessionDir = new File("sessions/active_session");
         if (!sessionDir.exists()) {
             sessionDir.mkdirs();
         }
 
-        // 2. Copy original room files into the session directory
+        // Copy original room files into the session directory
         String[] roomFiles = { "room1.csv", "room2.csv", "room3.csv", "room4.csv" };
         for (String file : roomFiles) {
             Path source = Paths.get("rooms", file);
@@ -46,8 +76,8 @@ public class Game {
             }
         }
 
-        // 3. Load the initial room and place the hero
-        currentRoom = Room.loadFromCSV("rooms/room1.csv");
+        // Load the initial room and place the hero
+        currentRoom = Room.loadFromCSV("sessions/active_session/room1.csv");
         hero = new Hero();
         currentRoom.placeHero(hero);
 

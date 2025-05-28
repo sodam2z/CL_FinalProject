@@ -91,12 +91,18 @@ public class Hero extends GameObject {
             Door door = (Door) obj;
             String nextRoom = door.getTargetRoomFilename();
 
-            // If it's the final master door leading to escape
+            // Escape through Master Door
             if (door.requiresKey() && nextRoom.contains("room1")) {
-                System.out.println("You escaped the maze! Congratulations!");
-                System.exit(0);
+                if (hasKey) {
+                    System.out.println("You used the key and escaped the maze! Congratulations!");
+                    System.exit(0);
+                } else {
+                    System.out.println("The Master Door is locked. You need a key to escape.");
+                    return;
+                }
             }
 
+            // Regular door or valid master door entry
             if (!door.requiresKey() || hasKey) {
                 System.out.println(
                     (door.requiresKey() ? "You used the key" : "You entered") +
@@ -106,14 +112,14 @@ public class Hero extends GameObject {
                 // Save current room state
                 room.saveToCSV();
 
-                // Load next room
-                Room nextRoomObj = Room.loadFromCSV(nextRoom);
+                // Load or retrieve the next room from cache
+                Room nextRoomObj = Game.getRoom(nextRoom);
                 if (nextRoomObj == null) {
                     System.out.println("[ERROR] Failed to load room: " + nextRoom);
                     return;
                 }
 
-                // Move hero into the next room
+                // Place hero in the new room without overwriting the door object
                 nextRoomObj.placeHero(this);
                 Game.setCurrentRoom(nextRoomObj);
                 return;

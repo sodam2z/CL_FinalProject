@@ -2,6 +2,7 @@ package model;
 
 import util.CSVUtils;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.*;
 
@@ -30,11 +31,16 @@ public class Room {
 
     /**
      * Loads a room from a CSV file, initializing the grid and registering monsters and items.
+     * Supports extended symbols such as "d:room3.csv" or "D:room1.csv" for doors.
      * @param filename path to the CSV file
      * @return the loaded Room object, or null if an error occurred
      */
     public static Room loadFromCSV(String filename) {
         try {
+            if (!filename.contains("/") && !filename.startsWith("sessions/")) {
+                filename = "sessions/active_session/" + filename;
+            }
+
             List<String[]> lines = CSVUtils.readCSV(filename);
             String[] sizeInfo = lines.get(0); // First line: size info
             int rows = Integer.parseInt(sizeInfo[0].trim());
@@ -46,9 +52,9 @@ public class Room {
             for (int r = 0; r < rows; r++) {
                 String[] row = lines.get(r + 1); // Grid data starts from second line
                 for (int c = 0; c < cols; c++) {
-                    char ch = row[c].charAt(0);
-                    GameObject obj = GameObjectFactory.createFromSymbol(ch, filename);
-                    room.grid[r][c] = new Cell(obj);
+                    String raw = row[c].trim(); // Read full string (e.g., "d:room3.csv")
+                    GameObject obj = GameObjectFactory.createFromSymbol(raw, filename);
+                    room.grid[r][c] = new Cell(obj, raw); 
 
                     // Register monster in list
                     if (obj instanceof Monster) {
@@ -134,10 +140,14 @@ public class Room {
             return;
         }
 
-        // 3. Otherwise, find first available empty cell
+        // 3. Otherwise, find the first safe truly empty cell (no object AND no previous content)
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
-                if (grid[r][c].isEmpty()) {
+                boolean isEmpty = grid[r][c].isEmpty();
+                String original = grid[r][c].getOriginalSymbol();
+                boolean wasEmptyBefore = (original == null || original.trim().isEmpty());
+
+                if (isEmpty && wasEmptyBefore) {
                     hero.setPosition(r, c);
                     grid[r][c].setObject(hero);
                     return;
@@ -147,24 +157,48 @@ public class Room {
     }
 
     /**
-     * Saves the current room state back to the CSV file.
+     * Saves the current state of the room into a CSV file.
+     * This method ensures that the output is written to the session directory
+     * It serializes the grid using each cell's original raw symbol
      */
     public void saveToCSV() {
+        // Determine the session path for saving the file
+        String savePath = filename;
+
+        // If current file is not already in the session path, redirect it
+        if (!filename.contains("sessions/active_session/")) {
+            String baseName = new File(filename).getName();  // Extracts "room2.csv" from full path
+            savePath = "sessions/active_session/" + baseName;
+        }
+
+        // Create a 2D string array to store room data
         String[][] data = new String[rows + 1][cols];
 
-        // First line: size
+        // First row stores the size information
         data[0][0] = String.valueOf(rows);
         data[0][1] = String.valueOf(cols);
 
-        // Grid content
+        // Fill in the grid data using the original raw symbols
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
                 GameObject obj = grid[r][c].getObject();
-                data[r + 1][c] = (obj != null) ? String.valueOf(obj.getSymbol()) : " ";
+                String raw = grid[r][c].getOriginalSymbol();
+
+                // Do not save the hero — they are placed dynamically when the room loads
+                if (obj instanceof Hero) {
+                    data[r + 1][c] = " ";
+                } else if (obj != null) {
+                    data[r + 1][c] = raw;
+                //} else if (raw != null && !raw.trim().isEmpty()) {
+                   // data[r + 1][c] = raw;
+                } else {
+                    data[r + 1][c] = " ";
+                }
             }
         }
 
-        CSVUtils.writeCSV(filename, data);
+        // Write the CSV data to file
+        util.CSVUtils.writeCSV(savePath, data);
     }
 
     // === Getters ===

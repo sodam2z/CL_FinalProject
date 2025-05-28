@@ -3,16 +3,20 @@ package model;
 /**
  * Represents a single cell in the game room grid.
  * Each cell may contain a GameObject, or be empty.
+ * It also stores the original symbol string used to recreate the object.
  */
 public class Cell {
     private GameObject object;
+    private String originalSymbol; 
 
     /**
      * Constructs a cell with a given GameObject.
      * @param object the object in the cell (can be null)
+     * @param originalSymbol the raw string from the CSV representing this object
      */
-    public Cell(GameObject object) {
+    public Cell(GameObject object, String originalSymbol) {
         this.object = object;
+        this.originalSymbol = originalSymbol;
     }
 
     /**
@@ -29,6 +33,24 @@ public class Cell {
      */
     public void setObject(GameObject object) {
         this.object = object;
+    }
+
+    /**
+     * Returns the original raw symbol string for this cell.
+     * Used when saving the room back to CSV.
+     * @return original symbol string (e.g., "W", "G:3", "d:room3.csv")
+     */
+    public String getOriginalSymbol() {
+        return originalSymbol;
+    }
+
+    /**
+     * Updates the original symbol string for this cell.
+     * Should be called when the object changes significantly.
+     * @param symbol the new original symbol to store
+     */
+    public void setOriginalSymbol(String symbol) {
+        this.originalSymbol = symbol;
     }
 
     /**
