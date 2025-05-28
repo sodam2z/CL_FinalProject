@@ -1,118 +1,91 @@
-# Final Project: Solo Adventure Maze
+# Design Explanation
 
-## Time Allotment for the Project: 4 weeks (completed in pairs)
+**Project Title**: Solo Adventure Maze  
+**Course**: ITM 413 – Computer Language  
+**Team Members**: 23102020 Lee Sodam, 23102025 Lee Haneol
 
-### Overview:
-Develop a text-based solo adventure game where a hero navigates through a maze of interconnected rooms. Each room is stored as a CSV file (rooms can be of any size) and loaded into a 2D grid. The hero explores the maze, battles monsters, collects weapons and healing potions, and must ultimately obtain a key (dropped by a specific monster) to unlock the door and escape.
+---
 
-### System Overview:
+## 1. Overview of Object-Oriented Design
 
-#### Rooms:
-- Each room is defined in a CSV (comma separated values) file with a variable number of rows and columns.
-  - The first line of the file indicates the number of rows and columns that define the room
-- The room is displayed with surrounding walls (using ASCII characters) for better visualization.
-- Each cell in the grid represents (character inside the parenthesis represents the character that will appear in the files):
-  - Blank space ( ): where the hero can move.
-  - The hero: represented by a symbol (@).
-  - Weapons: three types are available:
-    - Stick(S): (damage = 1)  
-    - Weak Sword(W): (damage = 2)  
-    - Strong Sword(X): (damage = 3)  
-  - Monsters: three types are available with specified hit points (HP) and damage:
-    - Goblin(G:HP): HP = 3, Damage = 1  
-    - Orc(O:HP): HP = 8, Damage = 3  
-    - Troll(T:HP): HP = 15, Damage = 4  
-    - Monsters remain static. Their health is updated and displayed in the action menu (when the hero is adjacent) so the player can see the monster's remaining HP before deciding to attack. A monster is only removed when its HP is fully depleted.
-  - Healing Potions: two types are available:
-    - Minor Flask(m): restores +6 HP  
-    - Big Flask(B): restores +12 HP  
-  - Doors(D): each door cell contains a file address (the next room's CSV file) and is displayed with a special symbol (D).
-  - Key(*): not initially present; a specific monster drops the key when defeated.
+This project implements a solo, text-based maze game using Java, designed with strong object-oriented principles. Each interactive game component—such as the hero, monsters, weapons, potions, doors, and rooms—is modeled as a separate class. Common behaviors are abstracted via inheritance and interfaces. The game uses `.csv` files to store room layouts, making the game content easily editable and data-driven. A central game loop accepts user commands, supports combat, room transitions, and updates the game state dynamically.
 
-#### Hero:
-- The hero (@) starts with a base HP of 25.
-- The hero can move throughout the room using directional commands (u=up, d=down, r=right, l=left).
-- Hero positioning rules at the start of the game:
-  - If the room1.csv file contains the @ symbol, the hero is placed at that position.
-  - If no @ is found in the file, the hero is placed at position (1,1).
-  - If position (1,1) is occupied by another object (e.g., item, monster), the hero is placed randomly in any empty space in the room.
-- The hero can pick up weapons and healing potions.
-  - When the hero moves to a cell with a healing potion, it will automatically consume it.  
-  - If the hero is fully healed, the potion is left in the room after moving out from the cell.
-  - When the hero moves to a cell with a weapon it will equip the weapon.
-  - When encountering a new weapon while already armed, a prompt allows the hero to decide whether to switch weapons. If the hero switches, the old weapon is left in the room; otherwise, the new weapon remains.
-- Attack Mechanics:
-  - The hero may only attack if armed.
-  - When the hero is adjacent to a monster, an action menu is displayed. This menu shows the monster’s current HP along with available actions (attack/don’t attack).
-  - If the hero attacks, the monster’s HP is reduced by the weapon’s damage, and simultaneously, the hero suffers damage equal to the monster's attack value.
-  - A monster is defeated and removed from the room only when its HP reaches zero.
-  - One designated monster will drop the key upon defeat. Only Trolls can drop the key.
+---
 
-### File I/O and Exception Handling:
-- When the game starts, a copy of the original room files is made in subfolder that represents one journey of the game. Every run will be saved in a different folder.
-- After that, room data is loaded from the copied CSV files.
-- Updated room state is saved back to the copied CSV file upon exit.
-  - When the hero exits a room (via a door), the current state (item pickups, monsters HP or defeated monsters, and weapon swaps) is saved back to the corresponding CSV file.
-- Robust exception handling must be implemented to manage file errors and invalid inputs.
+## 2. Class Responsibilities
 
-### User Interface:
-- Each room is printed with walls drawn using ASCII characters (e.g., +, -, |).
-- The hero’s stats (HP, current weapon, key possession) are displayed at the top of the room.
-- Unicode characters might be used for visual distinction (not required). For example:
-  - Hero: ☺ (Unicode U+263A).
-  - Strong Sword: ⚔ (Unicode U+2694), etc.
+- **Hero.java**  
+  Represents the player. Stores HP, position, equipped weapon, and key possession status.  
+  - Supports movement (`move()`), combat (`attack()`), potion healing, and weapon swapping.  
+  - On entering a Door tile, checks for key possession and transitions rooms.
 
-### Project Requirements:
+- **Monster.java**  
+  Represents enemies (Goblin, Orc, Troll). Stores HP and damage. Trolls drop a Key upon defeat.  
+  Blocks movement and can be attacked when adjacent.
 
-#### 1. File Handling and Room Management:
-- Load room data from CSV files into a 2D array.
-- Save the room’s state back to its file upon exit, including any changes (e.g., defeated monsters, item pickups, weapon swaps).
+- **Weapon.java / Potion.java / Key.java**  
+  - **Weapon**: Enhances damage dealt. Player chooses to switch if already armed.  
+  - **Potion**: Heals hero automatically if HP is below max.  
+  - **Key**: Required to exit through the master door. Dropped by the Troll.
 
-#### 2. Navigation and Game Mechanics:
-- Allow the hero to move within the room grid using commands (e.g., u/d/r/l).
-- Display the room with walls and the hero’s current stats at the top.
-- Item Interactions:
-  - Weapons:
-    - The hero picks up a weapon if unarmed.
-    - If already armed, a prompt allows the hero to choose whether to switch weapons. If switched, the old weapon is left behind.
-  - Healing Potions:
-    - Restore HP accordingly when picked up.
-    - If hero is fully healed, the item has no effect.
-- Combat:
-  - When a monster is adjacent, display an action menu that shows the monster's current HP and available actions (attack, ignore, etc.).
-  - If attacking, reduce the monster’s HP by the weapon’s damage and reduce the hero’s HP by the monster’s attack value.
-  - Remove monsters when their HP reaches zero.
-  - A designated monster will drop a key upon defeat.
-- Door and Key Mechanics:
-  - A single specific door can be unlocked only if the hero has obtained the key.
-  - Upon stepping on a door cell, if the hero has the key, the room state is saved and the next room (specified by the door’s file address) is loaded.
+- **Door.java**  
+  Contains the target room filename and handles room transitions. Checks key possession if the door is a master door (`D`).
 
-#### 3. OOP Design and Technical Requirements:
-- Use classes and objects to represent the hero, rooms, weapons, monsters, healing potions, and doors.
-  - Include a class diagram
-- Organize your project using a clear, modular OOP file structure (multiple class files).
-- Employ inheritance and interfaces where applicable.
-- Use ArrayLists to manage dynamic objects.
-- Use loops and conditionals for game logic.
-- Implement robust exception handling for file I/O and user input.
-- The program must produce clear, well-formatted console output.
-- Code is well-commented, follows Java naming conventions, and includes robust exception handling.
+- **Room.java**  
+  Core environment manager.  
+  - Loads room layout from a `.csv` into a 2D `Cell[][]` grid.  
+  - Tracks monsters using an `ArrayList<Monster>`.  
+  - Saves state changes (items, monsters, hero position) when exiting.
 
-#### 4. Additional Gameplay:
-- The hero’s stats (HP, current weapon, key status) must be displayed at the top of the room display each time the room is printed.
-- The action menu for combat must show the monster’s current HP to help the hero decide whether to attack.
+- **Cell.java**  
+  Represents a tile in the room. Stores a reference to a `GameObject`.  
+  - Methods: `isEmpty()`, `getSymbol()`, `setObject()`.
 
-### Project Deliverables:
-- Code: Fully functional Java code with a modular OOP file structure.
-- Design Artifacts: Class diagrams and a written explanation of your design choices.
-- Live Demonstration: The project will be evaluated live by the instructor and TA; be prepared to explain your implementation.
+- **GameObject.java (abstract)**  
+  Parent class for all interactable objects.  
+  - Defines `getSymbol()` to allow polymorphic rendering in rooms.
 
-### Assessment details. (15 points)
+- **GameObjectFactory.java**  
+  Translates characters from CSV files into instantiated `GameObject` subclasses.  
+  - Promotes clean separation of parsing logic from object creation.
 
-| Category                         | Functionality Description                                                                                                                                     | Points |
-|----------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|--------|
-| **File Handling and Room Management** | - Load room data from CSV files into a 2D array<br>- Save the room’s state back to its file                                                       | 20     |
-| **Navigation and Game Mechanics**     | - Hero movement within the grid (n/s/e/w) (5 pts)<br>- Display room with walls and hero's stats (5 pts)<br>- Weapons pickup/switch (8 pts)<br>- Healing potions (4 pts)<br>- Combat mechanics (10 pts)<br>- Door and key mechanics (3 pts) | 35     |
-| **OOP Design and Technical Requirements** | - Class design and modular file structure (8 pts)<br>- Use of inheritance/interfaces (5 pts)<br>- Use of ArrayLists (5 pts)<br>- Implementation of loops and conditionals (4 pts)<br>- Exception handling (4 pts)<br>- Code quality and console output (4 pts) | 30     |
-| **Additional Gameplay**               | - Display hero’s stats at the top (5 pts)<br>- Combat action menu showing monster HP (5 pts)<br>- Overall integration of gameplay features (5 pts)        | 15     |
-| **Total**                            |                                                                                                                                                              | **100** |
+- **Game.java**  
+  Manages the game loop.  
+  - Accepts commands: move (`u/d/l/r`), attack (`a`), quit (`q`).  
+  - Delegates actions to the hero and controls state transitions.
+
+- **CSVUtils.java**  
+  Utility class for reading and writing `.csv` files using Java I/O.  
+  - Ensures consistent layout format and robust error handling.
+
+---
+
+## 3. Inheritance and Polymorphism
+
+All interactable game objects inherit from `GameObject`, enabling consistent storage in `Cell` objects and polymorphic interactions (e.g., rendering symbols, picking up items). This structure simplifies handling various object types in a unified way.
+
+---
+
+## 4. Dynamic Object Management with ArrayList
+
+The `Room` class uses `ArrayList<Monster>` to track active enemies.  
+- Defeated monsters are removed from both the grid and the list.  
+- This enables efficient iteration and dynamic room updates without scanning the entire grid.
+
+---
+
+## 5. Robust Exception Handling
+
+File operations for loading/saving `.csv` files are wrapped in try-catch blocks.  
+- This prevents crashes due to missing or malformed files.  
+- Invalid user input is handled gracefully with helpful messages in the console.
+
+---
+
+## 6. Design Highlights and Justification
+
+- **Maintainability**: Each class handles a specific responsibility with clean boundaries.  
+- **Extensibility**: New items or monsters can be added easily by extending `GameObject`.  
+- **Data-Driven**: Room layout and content are defined externally in `.csv` files.  
+- **User Feedback**: Terminal clearly shows the map, monster HP, hero stats, and prompts.  
+- **Rich Interaction**: Players can pick up items, fight monsters, and transition between rooms dynamically.
