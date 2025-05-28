@@ -24,7 +24,8 @@ public class GameObjectFactory {
             case 'G': return new Monster("Goblin", 3, 1, 'G'); // Weak monster
             case 'O': return new Monster("Orc", 8, 3, 'O'); // Stronger monster
             case 'T': return new Monster("Troll", 15, 4, 'T'); // Strongest monster, drops key
-            case 'D': return new Door(calculateNextRoom(currentRoomFile)); // Door to next room
+            case 'd': return new Door(calculateNextRoom(currentRoomFile), false); // Regular door, no key required
+            case 'D': return new Door("rooms/room1.csv", true); // Master door, key required to escape
             case '*': return new Key(); // Key object
             case ' ': return null; // Empty space
             default:  return null; // Unrecognized character
@@ -42,6 +43,6 @@ public class GameObjectFactory {
         if (currentRoomFile.contains("room1")) return "rooms/room2.csv";
         if (currentRoomFile.contains("room2")) return "rooms/room3.csv";
         if (currentRoomFile.contains("room3")) return "rooms/room4.csv";
-        return "rooms/room1.csv"; // Final door loops back or ends the game
+        return "rooms/room1.csv"; // Master door (D) will always return to room1 after escape
     }
 }

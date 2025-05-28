@@ -59,6 +59,7 @@ public class Hero extends GameObject {
     /**
      * Handles movement logic for the hero.
      * Interacts with items, doors, monsters, and performs bounds checking.
+     * Handles automatic item pickup and room transitions.
      */
     public void move(char direction, Room room) {
         int newRow = row;
@@ -90,29 +91,30 @@ public class Hero extends GameObject {
             Door door = (Door) obj;
             String nextRoom = door.getTargetRoomFilename();
 
-            // Game ends if final door leads to room1
-            if (nextRoom.contains("room1")) {
+            // If it's the final master door leading to escape
+            if (door.requiresKey() && nextRoom.contains("room1")) {
                 System.out.println("You escaped the maze! Congratulations!");
                 System.exit(0);
             }
 
-            // Determine if a key is required
-            boolean requiresKey = !(nextRoom.contains("room1") || nextRoom.contains("room2") || nextRoom.contains("room3"));
-
-            if (!requiresKey || hasKey) {
+            if (!door.requiresKey() || hasKey) {
                 System.out.println(
-                    (requiresKey ? "You used the key" : "You entered") +
+                    (door.requiresKey() ? "You used the key" : "You entered") +
                     " and moved to the next room: " + nextRoom
                 );
 
-                room.saveToCSV(); // Save current room state
+                // Save current room state
+                room.saveToCSV();
+
+                // Load next room
                 Room nextRoomObj = Room.loadFromCSV(nextRoom);
                 if (nextRoomObj == null) {
                     System.out.println("[ERROR] Failed to load room: " + nextRoom);
                     return;
                 }
 
-                nextRoomObj.placeHero(this); // Place hero in next room
+                // Move hero into the next room
+                nextRoomObj.placeHero(this);
                 Game.setCurrentRoom(nextRoomObj);
                 return;
             } else {
@@ -204,6 +206,7 @@ public class Hero extends GameObject {
             int r = row + dir[0];
             int c = col + dir[1];
 
+            // Check bounds
             if (r >= 0 && r < room.getRows() && c >= 0 && c < room.getCols()) {
                 GameObject obj = grid[r][c].getObject();
 
