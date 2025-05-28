@@ -111,49 +111,59 @@ public class Room {
     }
 
     /**
-     * Places the hero into the room based on the following order of precedence:
-     * 1. If '@' is found, place hero there.
-     * 2. If cell (1,1) is empty, place hero there.
-     * 3. Otherwise, place hero in the first available empty cell.
+     * Places the hero into this room.
+     * Priority:
+     * 1. Use saved position if available and valid.
+     * 2. Use @ position from CSV.
+     * 3. Use (1,1) if empty.
+     * 4. Use first available empty cell.
      * @param hero the hero to place
      */
     public void placeHero(Hero hero) {
-        boolean placed = false;
+        // 1. Use previously saved position (if available)
+        int[] saved = hero.getSavedPosition(this.filename);
+        if (saved != null) {
+            int r = saved[0];
+            int c = saved[1];
+            if (r >= 0 && r < rows && c >= 0 && c < cols && grid[r][c].isEmpty()) {
+                hero.setPosition(r, c);
+                grid[r][c].setObject(hero);
+                return;
+            }
+        }
 
-        // 1. Check for '@' symbol in the room
+        // 2. Use @ position if exists
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
                 GameObject obj = grid[r][c].getObject();
                 if (obj instanceof Hero) {
                     hero.setPosition(r, c);
                     grid[r][c].setObject(hero);
-                    placed = true;
                     return;
                 }
             }
         }
 
-        // 2. If (1,1) is empty, place hero there
-        if (!placed && rows > 1 && cols > 1 && grid[1][1].isEmpty()) {
+        // 3. Use (1,1) if empty
+        if (rows > 1 && cols > 1 && grid[1][1].isEmpty()) {
             hero.setPosition(1, 1);
             grid[1][1].setObject(hero);
             return;
         }
 
-        // 3. Otherwise, find the first safe truly empty cell (no object AND no previous content)
+        // 4. Use any empty cell
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
-                boolean isEmpty = grid[r][c].isEmpty();
-                String original = grid[r][c].getOriginalSymbol();
-                boolean wasEmptyBefore = (original == null || original.trim().isEmpty());
-
-                if (isEmpty && wasEmptyBefore) {
+                if (grid[r][c].isEmpty()) {
                     hero.setPosition(r, c);
                     grid[r][c].setObject(hero);
                     return;
                 }
             }
         }
+
+        // If no placement was possible
+        System.out.println("[WARNING] Could not place hero in room: " + filename);
     }
 
     /**
@@ -213,6 +223,10 @@ public class Room {
 
     public int getCols() {
         return cols;
+    }
+
+    public String getFileName() {
+        return filename;
     }
 
     /**

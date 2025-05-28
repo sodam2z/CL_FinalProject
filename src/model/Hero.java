@@ -1,6 +1,9 @@
 package model;
 
 import app.Game;
+
+import java.util.HashMap;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 
@@ -16,6 +19,9 @@ public class Hero extends GameObject {
 
     private int row; // current row position
     private int col; // current column position
+
+    // Stores the last known position per room
+    private Map<String, int[]> roomPositions = new HashMap<>();
 
     public Hero() {
         this.row = 0;
@@ -57,6 +63,25 @@ public class Hero extends GameObject {
     }
 
     /**
+     * Records the hero's position in a specific room.
+     * @param roomFilename the room file name
+     * @param row the row position of the hero
+     * @param col the column position of the hero
+     */
+    public void savePosition(String roomFilename, int row, int col) {
+        roomPositions.put(roomFilename, new int[]{row, col});
+    }
+
+    /**
+     * Retrieves the last known position of the hero in a room.
+     * @param roomFilename the room file name
+     * @return an int array [row, col] if saved, or null if not
+     */
+    public int[] getSavedPosition(String roomFilename) {
+        return roomPositions.getOrDefault(roomFilename, null);
+    }
+
+    /**
      * Handles movement logic for the hero.
      * Interacts with items, doors, monsters, and performs bounds checking.
      * Handles automatic item pickup and room transitions.
@@ -91,11 +116,14 @@ public class Hero extends GameObject {
             Door door = (Door) obj;
             String nextRoom = door.getTargetRoomFilename();
 
+            // Save current position before moving
+            roomPositions.put(room.getFileName(), new int[]{row, col});
+
             // Escape through Master Door
             if (door.requiresKey() && nextRoom.contains("room1")) {
                 if (hasKey) {
                     System.out.println("You used the key and escaped the maze! Congratulations!");
-                    System.exit(0);
+                    System.exit(0); // End the game
                 } else {
                     System.out.println("The Master Door is locked. You need a key to escape.");
                     return;
@@ -119,8 +147,15 @@ public class Hero extends GameObject {
                     return;
                 }
 
-                // Place hero in the new room without overwriting the door object
-                nextRoomObj.placeHero(this);
+                // Determine position for re-entry if known
+                if (roomPositions.containsKey(nextRoom)) {
+                    int[] pos = roomPositions.get(nextRoom);
+                    this.setPosition(pos[0], pos[1]);
+                    nextRoomObj.getGrid()[pos[0]][pos[1]].setObject(this);
+                } else {
+                    nextRoomObj.placeHero(this);
+                }
+
                 Game.setCurrentRoom(nextRoomObj);
                 return;
             } else {
