@@ -239,7 +239,11 @@ public class Hero extends GameObject {
         }
 
         Cell[][] grid = room.getGrid();
-        int[][] directions = { {-1, 0}, {1, 0}, {0, -1}, {0, 1} }; // Up, Down, Left, Right
+        int[][] directions = {
+            {-1, -1}, {-1, 0}, {-1, 1},
+            {0, -1},           {0, 1},
+            {1, -1},  {1, 0},  {1, 1}
+        };
 
         boolean attacked = false;
 
