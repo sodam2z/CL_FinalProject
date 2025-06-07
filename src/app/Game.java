@@ -61,7 +61,11 @@ public class Game {
         // Create session directory (if it doesn't exist)
         File sessionDir = new File("sessions/active_session");
         if (!sessionDir.exists()) {
-            sessionDir.mkdirs();
+            boolean created = sessionDir.mkdirs();
+            if (!created) {
+                System.out.println("[ERROR] Failed to create session directory. Exiting the game.");
+                return;
+            }
         }
 
         // Copy original room files into the session directory
@@ -72,12 +76,18 @@ public class Game {
             try {
                 Files.copy(source, dest, StandardCopyOption.REPLACE_EXISTING);
             } catch (IOException e) {
-                System.out.println("[ERROR] Failed to copy " + file + ": " + e.getMessage());
+                System.out.println("[ERROR] Could not copy " + file + ". Please make sure the file exists in the 'rooms' folder.");
+                return; // Exit if any room file cannot be copied
             }
         }
 
         // Load the initial room and place the hero
         currentRoom = Room.loadFromCSV("sessions/active_session/room1.csv");
+        if (currentRoom == null) {
+            System.out.println("[ERROR] Failed to load the initial room. Make sure 'room1.csv' is valid.");
+            return;
+        }
+
         hero = new Hero();
         currentRoom.placeHero(hero);
 
@@ -92,11 +102,17 @@ public class Game {
 
             System.out.print("Enter command (u/d/l/r to move, a to attack, q to quit): ");
             String input = "";
+
             try {
-                input = scanner.nextLine().trim();
-            } catch (NoSuchElementException e) {
-                System.out.println("[ERROR] Input stream closed unexpectedly.");
-                return;
+                if (scanner.hasNextLine()) {
+                    input = scanner.nextLine().trim();
+                } else {
+                    System.out.println("[ERROR] No input detected. Exiting game.");
+                    break;
+                }
+            } catch (NoSuchElementException | IllegalStateException e) {
+                System.out.println("[ERROR] Problem reading input. Exiting game.");
+                break;
             }
 
             // Process player command
@@ -112,7 +128,7 @@ public class Game {
                     running = false;
                     break;
                 default:
-                    System.out.println("Invalid command.");
+                    System.out.println("Invalid command. Please try again.");
             }
 
             // Game ends if hero dies

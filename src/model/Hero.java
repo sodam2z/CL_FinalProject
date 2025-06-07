@@ -196,19 +196,21 @@ public class Hero extends GameObject {
                 Scanner scanner = new Scanner(System.in);
                 String input = "";
                 try {
-                    input = scanner.nextLine().trim();
+                    input = scanner.nextLine().trim().toLowerCase();
                 } catch (NoSuchElementException e) {
                     System.out.println("[ERROR] Unable to read your input.");
                     return;
                 }
 
-                if (input.equalsIgnoreCase("y")) {
+                if (input.equals("y")) {
                     // Drop current weapon and equip new one
                     targetCell.setObject(weapon);
                     weapon = newWeapon;
                     System.out.println("You switched weapons.");
-                } else {
+                } else if (input.equals("n")) {
                     System.out.println("You kept your current weapon.");
+                } else {
+                    System.out.println("[ERROR] Invalid input. Weapon not switched.");
                 }
             }
         }
@@ -239,9 +241,14 @@ public class Hero extends GameObject {
         }
 
         Cell[][] grid = room.getGrid();
-        int[][] directions = { {-1, 0}, {1, 0}, {0, -1}, {0, 1} }; // Up, Down, Left, Right
+        int[][] directions = {
+            {-1, -1}, {-1, 0}, {-1, 1},
+            {0, -1},           {0, 1},
+            {1, -1},  {1, 0},  {1, 1}
+        };
 
         boolean attacked = false;
+        boolean inputInvalid = false;
 
         for (int[] dir : directions) {
             int r = row + dir[0];
@@ -258,7 +265,13 @@ public class Hero extends GameObject {
                     System.out.println("You are next to a " + monster.getName() + " (HP: " + monster.getHp() + ")");
                     System.out.print("Do you want to attack? (y/n): ");
                     Scanner scanner = new Scanner(System.in);
-                    String input = scanner.nextLine();
+                    String input = "";
+                    try {
+                        input = scanner.nextLine();
+                    } catch (NoSuchElementException | IllegalStateException e) {
+                        System.out.println("[ERROR] Could not read your response. Attack canceled.");
+                        return;
+                    }
 
                     if (input.equalsIgnoreCase("y")) {
                         // Attack exchange
@@ -289,15 +302,21 @@ public class Hero extends GameObject {
                         }
 
                         attacked = true;
-                        break; // Attack only one monster per action
+                        break;
+                    } else if (input.equalsIgnoreCase("n")) {
+                        System.out.println("You chose not to attack.");
+                        attacked = true;
+                        break;
+                    } else {
+                        System.out.println("[ERROR] Invalid input. Attack canceled.");
+                        inputInvalid = true;
+                        break;
                     }
-
-                    scanner.close();
                 }
             }
         }
 
-        if (!attacked) {
+        if (!attacked && !inputInvalid) {
             System.out.println("There is no monster next to you.");
         }
     }
